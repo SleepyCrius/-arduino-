@@ -1,0 +1,105 @@
+#include <MsTimer2.h> 
+#include <LiquidCrystal.h>
+
+//蜂鸣器
+//端口分配
+#define Buzzer 10
+void Init_Alarm(){
+  pinMode(Buzzer,OUTPUT);
+}
+
+//警报程序
+void Alarm(){
+  for(int Hz=200;Hz<=800;Hz++){
+    tone(Buzzer,Hz);
+    delay(5);
+  }
+  delay(4000);
+  for(int Hz=800;Hz>=2;Hz--){
+      tone(Buzzer,Hz);
+      delay(10);
+  }
+  
+}
+
+void Mute(){
+  noTone(Buzzer);
+}
+
+
+// 超声波距离传感器
+//分配端口
+#define echopin 9 //回拨接收
+#define trigpin 8 //发送端
+
+//初始化设置
+void Init_Sonar(){
+  pinMode(echopin,INPUT);
+  pinMode(trigpin,OUTPUT);
+}
+
+float distance(){
+  //软件生成脉冲，施加在超声波探头T上产生42kHz超声波
+  digitalWrite(trigpin,LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigpin,HIGH);
+  delayMicroseconds(10);//发一个10us高脉冲触发trigpin
+  digitalWrite(trigpin,LOW);
+  //计算距离并返回值
+  return(pulseIn(echopin,HIGH)/58.0);//返回距离，单位是cm
+}
+
+
+
+
+//LCD显示
+//端口分配
+#define rs 12
+#define en 11
+#define d4 5
+#define d5 4
+#define d6 3
+#define d7 2
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+void Init_lcd()
+{
+  lcd.begin(16,2);// lcd大小为16x2
+  lcd.setCursor(4,0);//设置光标
+  lcd.print("WORKING");
+}
+
+void Displcd()
+{
+  
+    for(int i=2700;i>=0;i--){
+      lcd.setCursor(0,0); //将光标设置为LCD的第一个像素。
+      lcd.print("Count Down"); //将消息打印到lcd
+      lcd.setCursor(0,1); //将光标设置为第二行的第一个像素
+      lcd.print(i);
+      lcd.print("s");
+      delay(1000);  //每1秒钟刷新一次
+      lcd.clear(); //清除液晶
+    }
+}
+
+
+void setup() {
+  Init_Alarm();//初始化报警模块端口
+  Init_lcd();//初始化LCD模块端口
+  Init_Sonar();//初始化距离检测端口
+  MsTimer2::set(2700000,Alarm);//设置45min定时器2700000
+}
+
+void loop() {
+    if(distance()<=45){//说明人在座位上
+      Displcd();//液晶显示
+      MsTimer2::start();//开始倒计时
+    }
+    else{//说明人不在座位上
+      lcd.clear(); //清除液晶
+      Mute();//静音
+      MsTimer2::stop();//停止计时	  
+    }
+}
